@@ -11,6 +11,7 @@ export class AutoRelater {
   singularize: boolean;
   relations: Relation[];
   private usedChildNames: Set<string>;
+  private usedChildPropNames: Set<string>;
 
   constructor(options: AutoOptions) {
     this.caseModel = options.caseModel || 'o';
@@ -19,6 +20,7 @@ export class AutoRelater {
 
     this.relations = [];
     this.usedChildNames = new Set();
+    this.usedChildPropNames = new Set();
   }
 
   /** Create Relations from the foreign keys, and add to TableData */
@@ -76,6 +78,11 @@ export class AutoRelater {
         const otherModel = recase(this.caseModel, otherKey.foreignSources.target_table as string, this.singularize);
         const otherProp = this.getAlias(otherKey.source_column, otherKey.foreignSources.target_table as string, otherKey.foreignSources.source_table as string, true);
         const otherId = recase(this.caseProp, otherKey.source_column);
+        let childProp = pluralize(otherProp);
+        if (this.usedChildPropNames.has(childProp)) {
+          childProp = childProp + '_' + modelName;
+        }
+        this.usedChildPropNames.add(childProp)
 
         this.relations.push({
           parentId: sourceProp,
@@ -83,7 +90,7 @@ export class AutoRelater {
           parentProp: pluralize(alias),
           parentTable: qNameJoin(spec.foreignSources.target_schema || schema, spec.foreignSources.target_table),
           childModel: otherModel,
-          childProp: pluralize(otherProp),
+          childProp,
           childTable: qNameJoin(otherKey.foreignSources.target_schema || schema, otherKey.foreignSources.target_table),
           childId: otherId,
           joinModel: modelName,
